@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indicadores de Meio Ambiente — IP VIDAS</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --verde:#07583C; --verde-2:#0A6B4A; --lima:#B3DD64; --lima-suave:#EAF5D6;
+  --fundo:#F2F5F0; --papel:#FFFFFF; --tinta:#1C2B22; --muted:#5D6F64;
+  --linha:#D5E3CC; --erro:#B42318; --erro-bg:#FCE8E6; --aviso:#9A6B00; --aviso-bg:#FFF4DB;
+  --cinza-bg:#EEF1EE;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Barlow',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;background:var(--fundo);color:var(--tinta);font-size:15px;line-height:1.5}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--lima);outline-offset:2px}
+.hidden{display:none !important}
+
+header.topo{background:var(--verde);color:#fff;border-bottom:4px solid var(--lima)}
+.topo-inner{max-width:1240px;margin:0 auto;padding:16px 24px;display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap}
+.topo h1{margin:0;font-size:22px;line-height:1.2}
+.topo .sub{color:var(--lima);font-size:14px;font-weight:500}
+.topo .filtros{margin-left:auto;display:flex;gap:12px;flex-wrap:wrap}
+.topo label{display:block;font-size:12px;color:#CFE6D6;margin-bottom:2px}
+.topo select,.topo input{background:#0B6546;border:1px solid #2F7F60;color:#fff;border-radius:6px;padding:7px 10px;min-width:150px}
+.topo input::placeholder{color:#9CC5B0}
+
+main{max-width:1240px;margin:0 auto;padding:20px 24px 60px}
+
+.abas{display:flex;gap:4px;border-bottom:1px solid var(--linha);margin-bottom:18px}
+.aba{padding:8px 14px;border:none;background:none;cursor:pointer;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.aba.ativa{color:var(--verde);border-bottom-color:var(--verde)}
+
+.regua{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin-bottom:22px;overflow-x:auto}
+.mes{background:var(--papel);border:1px solid var(--linha);border-radius:6px;padding:8px 6px 10px;cursor:pointer;text-align:center;min-width:64px}
+.mes:hover{border-color:var(--verde)}
+.mes .nome{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:var(--verde)}
+.mes .ano{font-size:11px;color:var(--muted);line-height:1}
+.mes .conta{font-size:13px;font-weight:600;margin-top:4px}
+.mes.atual{box-shadow:inset 0 -3px 0 var(--lima)}
+.mes.sel{background:var(--verde);border-color:var(--verde);color:#fff}
+.mes.sel .nome{color:var(--lima)} .mes.sel .ano{color:#CFE6D6}
+
+.barra-acoes{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.barra-acoes h2{margin:0;font-size:20px}
+.barra-acoes .resumo{color:var(--muted);font-size:14px}
+.barra-acoes .dir{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:6px;border:1px solid transparent;cursor:pointer;font-weight:600;background:none}
+.btn-primario{background:var(--verde);color:#fff}
+.btn-primario:hover{background:var(--verde-2)}
+.btn-primario:disabled{background:#8FA99A;cursor:not-allowed}
+.btn-sec{background:#fff;color:var(--verde);border-color:var(--linha)}
+.btn-sec:hover{border-color:var(--verde)}
+.btn-link{color:var(--verde);padding:6px 8px;font-size:14px}
+.btn-link:hover{text-decoration:underline}
+.btn-link.perigo{color:var(--erro)}
+
+.grupo-ger{margin-bottom:18px}
+.grupo-ger h3{margin:0 0 8px;font-size:15px;color:var(--muted);font-weight:700}
+.lista{display:flex;flex-direction:column;gap:8px}
+.reg{background:var(--papel);border:1px solid var(--linha);border-left:5px solid var(--verde);border-radius:6px;padding:12px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px}
+.reg.parcial{border-left-color:var(--erro)}
+.reg h4{margin:0;font-size:15px;line-height:1.35}
+.reg .meta{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.reg .res{font-weight:700;font-size:15px;white-space:nowrap;align-self:start}
+.reg .res.ok{color:var(--verde)} .reg .res.nok{color:var(--erro)}
+.reg .acoes{grid-column:1/-1;display:flex;gap:2px;flex-wrap:wrap;border-top:1px solid var(--cinza-bg);padding-top:4px;margin-top:4px}
+.modo{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--lima-suave);color:var(--verde);margin-left:6px;vertical-align:1px}
+
+.vazio{background:var(--papel);border:1px dashed var(--linha);border-radius:6px;padding:28px;text-align:center;color:var(--muted)}
+.aviso-box{background:var(--aviso-bg);border:1px solid #F1D48A;color:var(--aviso);border-radius:6px;padding:10px 12px;font-size:13px;margin-bottom:14px}
+
+/* Visão da safra */
+.legenda{font-size:13px;color:var(--muted);margin:0 0 12px;max-width:760px}
+.tabela{background:var(--papel);border:1px solid var(--linha);border-radius:6px;overflow-x:auto}
+.tabela table{border-collapse:collapse;width:100%;font-size:13px}
+.tabela th,.tabela td{padding:7px 8px;border-bottom:1px solid var(--cinza-bg);text-align:center;white-space:nowrap}
+.tabela th:first-child,.tabela td:first-child{text-align:left;white-space:normal;min-width:260px}
+.tabela thead th{background:var(--lima-suave);color:var(--verde);font-weight:700;position:sticky;top:0}
+.tabela tr.ger td{background:var(--fundo);font-weight:700;color:var(--tinta)}
+.tabela td.v-ok{color:var(--verde);font-weight:700}
+.tabela td.v-nok{color:var(--erro);font-weight:700;background:var(--erro-bg)}
+.tabela td.v-zero{color:#AEB9B2}
+.tabela td .sem{display:block;font-size:11px;font-weight:600;color:var(--erro)}
+
+/* Modal */
+.fundo-modal{position:fixed;inset:0;background:rgba(12,30,20,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.modal{background:#fff;border-radius:10px;max-width:640px;width:100%;padding:22px 24px}
+.modal h3{margin:0 0 4px;color:var(--verde);font-size:19px}
+.modal .desc{margin:0 0 16px;color:var(--muted);font-size:14px}
+.campo{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.campo label{font-size:13px;font-weight:600;color:var(--muted)}
+.campo input,.campo select,.campo textarea{padding:9px 11px;border:1px solid var(--linha);border-radius:6px;background:#fff;width:100%}
+.campo textarea{min-height:64px;resize:vertical}
+.campo .ajuda{font-size:12px;color:var(--muted)}
+.linha2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.linha2{grid-template-columns:1fr}}
+.calc{background:var(--fundo);border-radius:6px;padding:8px 12px;font-size:14px;margin:-4px 0 14px}
+.modal .rodape{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.erro-form{color:var(--erro);font-size:13px;margin:-4px 0 10px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:10px 18px;border-radius:6px;z-index:80;font-size:14px}
+.toast.erro{background:var(--erro)}
+.carregando{color:var(--muted);padding:20px 0}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-inner">
+    <div>
+      <h1>Indicadores de Meio Ambiente</h1>
+      <div class="sub">Registro das apurações que alimentam o IP por gerência</div>
+    </div>
+    <div class="filtros">
+      <div><label for="f-safra">Safra</label><select id="f-safra"></select></div>
+      <div><label for="f-unid">Unidade</label><select id="f-unid"></select></div>
+      <div><label for="f-resp">Seu nome</label><input id="f-resp" placeholder="Responsável pela vistoria"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="abas" role="tablist">
+    <button class="aba ativa" data-aba="reg" role="tab">Vistorias do mês</button>
+    <button class="aba" data-aba="safra" role="tab">Visão da safra</button>
+  </div>
+
+  <div id="avisos"></div>
+
+  <section id="aba-reg">
+    <div class="regua" id="regua"></div>
+    <div class="barra-acoes">
+      <h2 id="titulo-mes"></h2>
+      <span class="resumo" id="resumo-mes"></span>
+      <div class="dir"><button class="btn btn-primario" onclick="abrirRegistro()">Nova vistoria</button></div>
+    </div>
+    <div id="lista"><div class="carregando">Carregando...</div></div>
+  </section>
+
+  <section id="aba-safra" class="hidden">
+    <div class="barra-acoes">
+      <p class="legenda" style="margin:0">
+        É assim que o hub vai gravar no IP: cada célula mostra <b>conformes de avaliados</b> no mês.
+        "—" é mês sem vistoria, que entra como 0 de 0 (100 pontos). A coluna Safra mostra quantas vezes
+        a gerência foi avaliada naquele indicador, para ajudar a escolher as próximas.
+      </p>
+      <div class="dir"><button class="btn btn-sec" onclick="exportar()">Exportar registros (Excel)</button></div>
+    </div>
+    <div class="tabela" id="tabela-safra"></div>
+  </section>
+</main>
+
+<div id="modal-raiz"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// Conexão (mesmo projeto e mesma chave pública do Hub)
+// ─────────────────────────────────────────────────────────────
+const SB_URL = 'https://umpctnchhmyvpjwxllaj.supabase.co';
+const SB_KEY = 'sb_publishable_lxiF04jATB1HMLINX-FvOg_3JOjXxrQ';
+const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, storageKey: 'sistema-ip-auth' } });
+
+// ─────────────────────────────────────────────────────────────
+// Indicadores de Meio Ambiente e como cada um é apurado.
+// O nome precisa bater com o cadastro (acentos, maiúsculas e espaços são ignorados).
+// modo: amostral | plano | marco | medicao | evento  (só muda os rótulos da tela)
+// ─────────────────────────────────────────────────────────────
+const IND_MA = [
+  { nome: 'Manutenção dos aceiros (95% dos aceiros com manutenção)', modo: 'amostral', ponto: 'Identificação do aceiro (nº, talhão, fazenda)', p: 'Aceiros vistoriados', r: 'Com manutenção' },
+  { nome: 'Separação e destinação de Resíduos sólidos da saúde (100 % dos resíduos separados)', modo: 'amostral', ponto: 'Local de geração (ambulatório, posto...)', p: 'Pontos vistoriados', r: 'Pontos com resíduo separado' },
+  { nome: 'Evidencias de controle e monitoramento de moscas dos estábulos PB (100%)', modo: 'amostral', ponto: 'Estábulo / local', p: 'Locais verificados', r: 'Com evidência de controle' },
+  { nome: 'Separação e destinação de resíduos (100% dos resíduos separados)', modo: 'amostral', ponto: 'Local / coletores vistoriados', p: 'Pontos vistoriados', r: 'Pontos com resíduo separado' },
+  { nome: 'Inspeção caixa separadora de água e óleo', modo: 'amostral', ponto: 'Caixa SAO (local)', p: 'Caixas inspecionadas', r: 'Caixas conformes' },
+  { nome: 'Monitoramento de Fumaça de Veiculos a Diesel (90 % dos veículos devem estar com padrão escala de Ringelmann )', modo: 'amostral', ponto: 'Placas / frotas medidas', p: 'Veículos medidos', r: 'Dentro do padrão Ringelmann' },
+  { nome: 'Monitoramento da Fumaça das Caldeiras (90 % das análises devem estar com padrão escala de Ringelmann)', modo: 'amostral', ponto: 'Caldeira', p: 'Análises feitas', r: 'Dentro do padrão Ringelmann' },
+  { nome: 'Evidencias que não há agrotóxicos vencidos (0 produtos estocados há mais de 6 meses )', modo: 'amostral', ponto: 'Depósito vistoriado', p: 'Depósitos vistoriados', r: 'Sem produto vencido' },
+  { nome: 'Captação de Água (Volume captado X outorgado)', modo: 'medicao', ponto: 'Ponto de captação / nº da outorga', p: 'Pontos de captação medidos', r: 'Dentro do volume outorgado' },
+  { nome: 'Monitoramento Pelo Pantera (Ocorrências de Incêndio-100% focos lançados no sistema pantera)', modo: 'evento', ponto: 'Ocorrências do período', p: 'Focos ocorridos', r: 'Focos lançados no Pantera' },
+  { nome: 'Manutenção Tratamento de Esgoto (90 % do plano de manutenção realizado)', modo: 'plano', ponto: 'ETE / sistema', p: 'Manutenções previstas no plano', r: 'Manutenções realizadas' },
+  { nome: 'Limpeza periodica da Caixa SAO', modo: 'plano', ponto: 'Caixa SAO (local)', p: 'Limpezas previstas', r: 'Limpezas realizadas' },
+  { nome: 'Manutenção periódica do Sistema Sump do posto de abastecimento (90% da manutenção realizada)', modo: 'plano', ponto: 'Posto de abastecimento', p: 'Manutenções previstas', r: 'Manutenções realizadas' },
+  { nome: 'Plano de Aplicação de Vinhaça - PAV (100% do plano concluído e protocolado)', modo: 'marco', ponto: 'Nº do protocolo', p: 'Previsto', r: 'Concluído e protocolado' },
+  { nome: 'Nº de Termo de Compromisso de Recuperação Ambiental (TCRA)', modo: 'marco', ponto: 'Identificação dos TCRAs', p: 'TCRAs previstos', r: 'TCRAs atendidos' },
+  { nome: 'Apresentação de Destinação de Embalagens de Agrotóxicos (100%)', modo: 'marco', ponto: 'Comprovante / nº da nota', p: 'Previsto', r: 'Apresentado' }
+];
+const NOME_MODO = { amostral: 'amostral', plano: 'plano', marco: 'entrega', medicao: 'medição', evento: 'por evento' };
+const AJUDA_MODO = {
+  amostral: 'Informe quantos itens foram avaliados nesta vistoria e quantos estavam conformes.',
+  plano: 'Registre o previsto do plano no mês, mesmo que nada tenha sido feito. Sem registro, o mês fica 0 de 0 (100 pontos).',
+  marco: 'Registre no mês em que a entrega estava prevista, mesmo se ainda não foi feita.',
+  medicao: 'Um item por ponto de captação medido no mês.',
+  evento: 'Registre no mês em que houve focos. Sem focos, não precisa registrar.'
+};
+
+const MESES_SAFRA = [['04','Abr'],['05','Mai'],['06','Jun'],['07','Jul'],['08','Ago'],['09','Set'],['10','Out'],['11','Nov'],['12','Dez'],['01','Jan'],['02','Fev'],['03','Mar']];
+const NOMES_MES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+let safras = [], unidades = [], indsMA = [], gerencias = [], cfgPorGer = {}, registros = [];
+let mesSel = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const normMA = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '');
+const curto = n => String(n || '').split('(')[0].trim();
+const hojeISO = () => new Date().toISOString().slice(0, 10);
+const hojeMes = () => hojeISO().slice(0, 7);
+const fmtData = d => d ? d.split('-').reverse().join('/') : '';
+const nomeMesLongo = ym => NOMES_MES[Number(ym.slice(5, 7)) - 1] + ' de ' + ym.slice(0, 4);
+const safraAtual = () => safras.find(s => s.id === Number($('f-safra').value));
+const unidadeAtual = () => Number($('f-unid').value);
+const lsGet = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+const indPorId = id => indsMA.find(i => i.id === id);
+const gerPorId = id => gerencias.find(g => g.id === id);
+
+function mesesDaSafra(s) {
+  if (!s) return [];
+  return MESES_SAFRA.map(([n, abr]) => ({ ym: (Number(n) >= 4 ? s.ano_ini : s.ano_fim) + '-' + n, abr, ano: Number(n) >= 4 ? s.ano_ini : s.ano_fim }));
+}
+function toast(msg, erro) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (erro ? ' erro' : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), erro ? 6000 : 2600);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Carga
+// ─────────────────────────────────────────────────────────────
+async function init() {
+  $('f-resp').value = lsGet('ma-resp') || '';
+  $('f-resp').addEventListener('change', e => lsSet('ma-resp', e.target.value.trim()));
+
+  const [rs, ru, ri] = await Promise.all([
+    sb.from('safras').select('id,nome,ano_ini,ano_fim').eq('ativa', true).order('ano_ini', { ascending: false }),
+    sb.from('unidades').select('id,nome').eq('ativo', true).order('nome'),
+    sb.from('indicadores').select('id,nome,bloco').eq('ativo', true)
+  ]);
+  const err = rs.error || ru.error || ri.error;
+  if (err) {
+    $('lista').innerHTML = `<div class="vazio">Não consegui ler o Supabase (${esc(err.message)}).<br>Confira as permissões ou abra o sistema principal e faça login neste navegador.</div>`;
+    return;
+  }
+  safras = rs.data || []; unidades = ru.data || [];
+
+  const faltando = [];
+  IND_MA.forEach(def => {
+    const achados = (ri.data || []).filter(i => normMA(i.nome) === normMA(def.nome));
+    if (!achados.length) faltando.push(def.nome);
+    achados.forEach(i => indsMA.push({ ...def, id: i.id, nomeCad: i.nome }));
+  });
+  // Indicadores do bloco Meio Ambiente que não estão na lista acima entram com rótulos genéricos
+  (ri.data || []).forEach(i => {
+    if (normMA(i.bloco) === 'meioambiente' && !indsMA.some(x => x.id === i.id))
+      indsMA.push({ nome: i.nome, nomeCad: i.nome, id: i.id, modo: 'amostral', ponto: 'Ponto / local avaliado', p: 'Itens avaliados', r: 'Itens conformes' });
+  });
+  if (faltando.length) $('avisos').innerHTML = `<div class="aviso-box">Não encontrei no cadastro de indicadores: ${faltando.map(n => '<b>' + esc(curto(n)) + '</b>').join(', ')}. Esses não aparecem na tela.</div>`;
+
+  $('f-safra').innerHTML = safras.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('');
+  $('f-unid').innerHTML = unidades.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+  if (lsGet('ma-unid') && unidades.some(u => String(u.id) === lsGet('ma-unid'))) $('f-unid').value = lsGet('ma-unid');
+
+  $('f-safra').onchange = () => { mesSel = null; carregarTudo(); };
+  $('f-unid').onchange = () => { lsSet('ma-unid', $('f-unid').value); carregarTudo(); };
+  document.querySelectorAll('.aba').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.aba').forEach(x => x.classList.toggle('ativa', x === b));
+    $('aba-reg').classList.toggle('hidden', b.dataset.aba !== 'reg');
+    $('aba-safra').classList.toggle('hidden', b.dataset.aba !== 'safra');
+    if (b.dataset.aba === 'safra') renderSafra();
+  });
+  carregarTudo();
+}
+
+async function carregarTudo() {
+  const s = safraAtual(), u = unidadeAtual();
+  if (!s || !u) return;
+  $('lista').innerHTML = '<div class="carregando">Carregando...</div>';
+  const idsInd = indsMA.map(i => i.id);
+
+  const rg = await sb.from('gerencias').select('id,nome').eq('unidade_id', u).eq('ativo', true).order('nome');
+  if (rg.error) { $('lista').innerHTML = `<div class="vazio">Erro ao carregar gerências: ${esc(rg.error.message)}</div>`; return; }
+  const idsGer = (rg.data || []).map(g => g.id);
+
+  let rc = await sb.from('ind_gerencia_safra').select('gerencia_id,indicador_id')
+    .eq('safra_id', s.id).eq('ativo', true).in('indicador_id', idsInd.length ? idsInd : [-1]).in('gerencia_id', idsGer.length ? idsGer : [-1]);
+  if (!rc.error && !(rc.data || []).length) {
+    rc = await sb.from('ind_gerencia_safra').select('gerencia_id,indicador_id')
+      .eq('ativo', true).in('indicador_id', idsInd.length ? idsInd : [-1]).in('gerencia_id', idsGer.length ? idsGer : [-1]);
+  }
+  const rv = await sb.from('vistorias_ma').select('*').eq('safra_id', s.id).eq('unidade_id', u).order('data_vistoria').order('id');
+  const err = rc.error || rv.error;
+  if (err) {
+    $('lista').innerHTML = `<div class="vazio">Erro ao carregar: ${esc(err.message)}<br>Se citar "vistorias_ma", rode antes o SQL de criação da tabela.</div>`;
+    return;
+  }
+
+  cfgPorGer = {};
+  (rc.data || []).forEach(c => { (cfgPorGer[c.gerencia_id] = cfgPorGer[c.gerencia_id] || new Set()).add(c.indicador_id); });
+  gerencias = (rg.data || []).filter(g => cfgPorGer[g.id]);
+  registros = rv.data || [];
+
+  if (!mesSel) {
+    const ms = mesesDaSafra(s).map(m => m.ym);
+    mesSel = ms.includes(hojeMes()) ? hojeMes() : ms[0];
+  }
+  renderRegua(); renderLista();
+  if (!$('aba-safra').classList.contains('hidden')) renderSafra();
+}
+
+// ─────────────────────────────────────────────────────────────
+// Aba: vistorias do mês
+// ─────────────────────────────────────────────────────────────
+function renderRegua() {
+  $('regua').innerHTML = mesesDaSafra(safraAtual()).map(m => {
+    const n = registros.filter(r => r.mes === m.ym).length;
+    return `<div class="mes ${m.ym === mesSel ? 'sel' : ''} ${m.ym === hojeMes() ? 'atual' : ''}" tabindex="0" role="button"
+      onclick="selMes('${m.ym}')" onkeydown="if(event.key==='Enter')selMes('${m.ym}')" aria-label="${nomeMesLongo(m.ym)}: ${n} vistoria(s)">
+      <div class="nome">${m.abr}</div><div class="ano">${m.ano}</div>
+      <div class="conta">${n || '—'}</div></div>`;
+  }).join('');
+}
+function selMes(ym) { mesSel = ym; renderRegua(); renderLista(); }
+
+function renderLista() {
+  $('titulo-mes').textContent = nomeMesLongo(mesSel);
+  if (!gerencias.length) {
+    $('resumo-mes').textContent = '';
+    $('lista').innerHTML = '<div class="vazio">Nenhuma gerência desta unidade tem indicador de Meio Ambiente configurado na safra.</div>';
+    return;
+  }
+  const doMes = registros.filter(r => r.mes === mesSel);
+  const nGer = new Set(doMes.map(r => r.gerencia_id)).size;
+  $('resumo-mes').textContent = doMes.length ? `${doMes.length} vistoria(s) em ${nGer} gerência(s)` : '';
+  if (!doMes.length) {
+    $('lista').innerHTML = `<div class="vazio">Nenhuma vistoria registrada em ${nomeMesLongo(mesSel).toLowerCase()}.<br>
+      <button class="btn btn-primario" style="margin-top:12px" onclick="abrirRegistro()">Nova vistoria</button></div>`;
+    return;
+  }
+  const porGer = {};
+  doMes.forEach(r => (porGer[r.gerencia_id] = porGer[r.gerencia_id] || []).push(r));
+  $('lista').innerHTML = Object.keys(porGer).map(Number)
+    .sort((a, b) => (gerPorId(a)?.nome || '').localeCompare(gerPorId(b)?.nome || ''))
+    .map(gid => `<div class="grupo-ger"><h3>${esc(gerPorId(gid)?.nome || 'Gerência ' + gid)}</h3><div class="lista">` +
+      porGer[gid].map(r => {
+        const ind = indPorId(r.indicador_id);
+        const ok = r.realizado >= r.previsto;
+        const meta = [fmtData(r.data_vistoria)];
+        if (r.ponto) meta.push(esc(r.ponto));
+        if (r.responsavel) meta.push('Por ' + esc(r.responsavel));
+        if (r.observacoes) meta.push(esc(r.observacoes));
+        return `<article class="reg ${ok ? '' : 'parcial'}">
+          <h4>${esc(curto(ind?.nomeCad || 'Indicador ' + r.indicador_id))}${ind ? `<span class="modo">${NOME_MODO[ind.modo]}</span>` : ''}</h4>
+          <span class="res ${ok ? 'ok' : 'nok'}">${r.realizado} de ${r.previsto}</span>
+          <div class="meta">${meta.map(m => `<span>${m}</span>`).join('')}</div><div></div>
+          <div class="acoes">
+            <button class="btn btn-link" onclick="abrirRegistro(${r.id})">Editar</button>
+            ${r.evidencia_url ? `<a class="btn btn-link" href="${esc(r.evidencia_url)}" target="_blank" rel="noopener">Ver evidência</a>` : ''}
+            <button class="btn btn-link perigo" onclick="excluir(${r.id})">Excluir</button>
+          </div></article>`;
+      }).join('') + '</div></div>').join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Aba: visão da safra (gerência × indicador × mês)
+// ─────────────────────────────────────────────────────────────
+function somaMes(gid, iid, ym) {
+  let p = 0, r = 0;
+  registros.forEach(x => { if (x.gerencia_id === gid && x.indicador_id === iid && x.mes === ym) { p += x.previsto; r += x.realizado; } });
+  return [p, r];
+}
+function renderSafra() {
+  const meses = mesesDaSafra(safraAtual());
+  if (!gerencias.length) { $('tabela-safra').innerHTML = '<div class="vazio">Nenhuma gerência com indicador de Meio Ambiente configurado.</div>'; return; }
+  const linhas = gerencias.map(g => {
+    const inds = indsMA.filter(i => cfgPorGer[g.id].has(i.id));
+    return `<tr class="ger"><td colspan="${meses.length + 2}">${esc(g.nome)}</td></tr>` + inds.map(i => {
+      const nSafra = registros.filter(x => x.gerencia_id === g.id && x.indicador_id === i.id).length;
+      const cels = meses.map(m => {
+        const [p, r] = somaMes(g.id, i.id, m.ym);
+        if (!p) return '<td class="v-zero">—</td>';
+        return `<td class="${r >= p ? 'v-ok' : 'v-nok'}">${r} de ${p}</td>`;
+      }).join('');
+      return `<tr><td>${esc(curto(i.nomeCad))}<span class="modo">${NOME_MODO[i.modo]}</span></td>${cels}
+        <td>${nSafra ? nSafra : '<span class="sem">nunca avaliado</span>'}</td></tr>`;
+    }).join('');
+  }).join('');
+  $('tabela-safra').innerHTML = `<table><thead><tr><th>Gerência / indicador</th>${meses.map(m => `<th>${m.abr}/${String(m.ano).slice(2)}</th>`).join('')}<th>Safra</th></tr></thead><tbody>${linhas}</tbody></table>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Modal: nova / editar vistoria
+// ─────────────────────────────────────────────────────────────
+function abrirModal(html) {
+  $('modal-raiz').innerHTML = `<div class="fundo-modal" onclick="if(event.target===this)fecharModal()"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  const primeiro = $('modal-raiz').querySelector('select,input,textarea');
+  if (primeiro) primeiro.focus();
+}
+function fecharModal() { $('modal-raiz').innerHTML = ''; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+const resp = () => ($('f-resp').value || '').trim();
+
+function abrirRegistro(id) {
+  if (!gerencias.length) { toast('Nenhuma gerência desta unidade tem indicador de Meio Ambiente configurado.', true); return; }
+  const r = id ? registros.find(x => x.id === id) : null;
+  const meses = mesesDaSafra(safraAtual());
+  const dataPadrao = r ? r.data_vistoria : (mesSel === hojeMes() ? hojeISO() : mesSel + '-01');
+  abrirModal(`
+    <h3>${r ? 'Editar vistoria' : 'Nova vistoria'}</h3>
+    <p class="desc">O mês da data da vistoria é o mês em que ela conta no IP.</p>
+    <div class="campo"><label for="m-ger">Gerência</label>
+      <select id="m-ger">${gerencias.map(g => `<option value="${g.id}" ${r?.gerencia_id === g.id ? 'selected' : ''}>${esc(g.nome)}</option>`).join('')}</select></div>
+    <div class="campo"><label for="m-ind">Indicador</label><select id="m-ind"></select>
+      <span class="ajuda" id="m-ajuda"></span></div>
+    <div class="linha2">
+      <div class="campo"><label for="m-data">Data da vistoria</label>
+        <input type="date" id="m-data" value="${dataPadrao}" min="${meses[0].ym}-01" max="${hojeISO()}"></div>
+      <div class="campo"><label for="m-ponto">Ponto avaliado</label><input id="m-ponto" value="${esc(r?.ponto || '')}"></div>
+    </div>
+    <div class="linha2">
+      <div class="campo"><label for="m-prev" id="l-prev">Avaliados</label><input type="number" min="1" step="1" id="m-prev" value="${r?.previsto ?? 1}"></div>
+      <div class="campo"><label for="m-real" id="l-real">Conformes</label><input type="number" min="0" step="1" id="m-real" value="${r?.realizado ?? ''}"></div>
+    </div>
+    <div class="calc" id="m-calc"></div>
+    <div class="campo"><label for="m-evid">Link da evidência (fotos, relatório)</label><input type="url" id="m-evid" value="${esc(r?.evidencia_url || '')}" placeholder="https://..."></div>
+    <div class="campo"><label for="m-obs">Observações</label><textarea id="m-obs">${esc(r?.observacoes || '')}</textarea></div>
+    <div id="m-erro" class="erro-form"></div>
+    <div class="rodape"><button class="btn btn-sec" onclick="fecharModal()">Voltar</button>
+      <button class="btn btn-primario" id="m-salvar">${r ? 'Salvar alterações' : 'Registrar vistoria'}</button></div>`);
+
+  const syncInds = () => {
+    const gid = Number($('m-ger').value);
+    const inds = indsMA.filter(i => cfgPorGer[gid]?.has(i.id));
+    const atual = Number($('m-ind').value) || r?.indicador_id;
+    $('m-ind').innerHTML = inds.map(i => `<option value="${i.id}" ${i.id === atual ? 'selected' : ''}>${esc(curto(i.nomeCad))}</option>`).join('');
+    syncRotulos();
+  };
+  const syncRotulos = () => {
+    const ind = indPorId(Number($('m-ind').value));
+    if (!ind) return;
+    $('l-prev').textContent = ind.p; $('l-real').textContent = ind.r;
+    $('m-ponto').placeholder = ind.ponto;
+    $('m-ajuda').textContent = ind.nomeCad + '. ' + AJUDA_MODO[ind.modo];
+    calc();
+  };
+  const calc = () => {
+    const p = Number($('m-prev').value), rr = $('m-real').value === '' ? null : Number($('m-real').value);
+    const d = $('m-data').value;
+    const partes = [];
+    if (p > 0 && rr !== null && rr >= 0) partes.push(`<b>${rr} de ${p}</b> (${Math.round(rr / p * 100)}%)`);
+    if (d) partes.push('conta no IP de ' + nomeMesLongo(d.slice(0, 7)).toLowerCase());
+    $('m-calc').innerHTML = partes.join(', ') || 'Preencha os números.';
+  };
+  $('m-ger').onchange = syncInds;
+  $('m-ind').onchange = syncRotulos;
+  ['m-prev', 'm-real', 'm-data'].forEach(k => $(k).oninput = calc);
+  syncInds();
+  $('m-salvar').onclick = () => salvar(r);
+}
+
+async function salvar(r) {
+  if (!resp()) { toast('Preencha "Seu nome" no topo antes de salvar.', true); $('f-resp').focus(); return; }
+  const meses = mesesDaSafra(safraAtual()).map(m => m.ym);
+  const d = $('m-data').value;
+  const p = Number($('m-prev').value), rr = $('m-real').value === '' ? NaN : Number($('m-real').value);
+  const indId = Number($('m-ind').value);
+  const erro = t => { $('m-erro').textContent = t; };
+  if (!indId) return erro('Escolha o indicador.');
+  if (!d) return erro('Informe a data da vistoria.');
+  if (d > hojeISO()) return erro('A data não pode ser futura.');
+  if (!meses.includes(d.slice(0, 7))) return erro('A data está fora da safra selecionada.');
+  if (!Number.isInteger(p) || p < 1) return erro('O primeiro número precisa ser pelo menos 1.');
+  if (!Number.isInteger(rr) || rr < 0) return erro('Informe o segundo número (pode ser 0).');
+  if (rr > p) return erro('O segundo número não pode ser maior que o primeiro.');
+
+  const btn = $('m-salvar'); btn.disabled = true; btn.textContent = 'Salvando...';
+  const dados = {
+    gerencia_id: Number($('m-ger').value), indicador_id: indId, data_vistoria: d, mes: d.slice(0, 7),
+    ponto: $('m-ponto').value.trim() || null, previsto: p, realizado: rr,
+    evidencia_url: $('m-evid').value.trim() || null, observacoes: $('m-obs').value.trim() || null,
+    responsavel: resp(), atualizado_em: new Date().toISOString()
+  };
+  const { error } = r
+    ? await sb.from('vistorias_ma').update(dados).eq('id', r.id)
+    : await sb.from('vistorias_ma').insert({ ...dados, safra_id: safraAtual().id, unidade_id: unidadeAtual() });
+  if (error) { btn.disabled = false; btn.textContent = 'Tentar de novo'; return erro('Não salvou: ' + error.message); }
+  fecharModal(); toast(r ? 'Vistoria atualizada' : 'Vistoria registrada');
+  mesSel = dados.mes; carregarTudo();
+}
+
+async function excluir(id) {
+  const r = registros.find(x => x.id === id);
+  if (!confirm(`Excluir a vistoria de ${fmtData(r.data_vistoria)} (${gerPorId(r.gerencia_id)?.nome || ''})?\n\nSe o mês já foi apurado no hub, apure de novo depois.`)) return;
+  const { error } = await sb.from('vistorias_ma').delete().eq('id', id);
+  if (error) { toast('Não excluiu: ' + error.message, true); return; }
+  toast('Vistoria excluída'); carregarTudo();
+}
+
+// ─────────────────────────────────────────────────────────────
+// Exportação
+// ─────────────────────────────────────────────────────────────
+function exportar() {
+  const s = safraAtual(), un = unidades.find(u => u.id === unidadeAtual());
+  const cab = ['Mês', 'Data', 'Gerência', 'Indicador', 'Modo', 'Ponto avaliado', 'Previsto/avaliados', 'Realizado/conformes', '%', 'Responsável', 'Evidência', 'Observações'];
+  const linhas = [...registros].sort((a, b) => a.data_vistoria.localeCompare(b.data_vistoria)).map(r => {
+    const ind = indPorId(r.indicador_id);
+    return [r.mes, fmtData(r.data_vistoria), gerPorId(r.gerencia_id)?.nome || r.gerencia_id, ind?.nomeCad || r.indicador_id,
+      ind ? NOME_MODO[ind.modo] : '', r.ponto || '', r.previsto, r.realizado, Math.round(r.realizado / r.previsto * 100) / 100,
+      r.responsavel || '', r.evidencia_url || '', r.observacoes || ''];
+  });
+  const ws = XLSX.utils.aoa_to_sheet([[`Indicadores de Meio Ambiente — Safra ${s.nome} — ${un?.nome || ''}`], [], cab, ...linhas]);
+  ws['!cols'] = [{ wch: 9 }, { wch: 11 }, { wch: 38 }, { wch: 60 }, { wch: 11 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 6 }, { wch: 18 }, { wch: 30 }, { wch: 40 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Vistorias');
+  XLSX.writeFile(wb, `Indicadores_MA_${(un?.nome || 'unidade').replace(/\W+/g, '_')}_${s.nome.replace(/\W+/g, '-')}.xlsx`);
+}
+
+init();
+</script>
+</body>
+</html>
