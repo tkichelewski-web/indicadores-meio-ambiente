@@ -135,6 +135,7 @@ main{max-width:1240px;margin:0 auto;padding:20px 24px 60px}
   </div>
 
   <div id="avisos"></div>
+  <div id="avisos-cfg"></div>
 
   <section id="aba-reg">
     <div class="regua" id="regua"></div>
@@ -192,6 +193,10 @@ const IND_MA = [
   { nome: 'Nº de Termo de Compromisso de Recuperação Ambiental (TCRA)', modo: 'marco', ponto: 'Identificação dos TCRAs', p: 'TCRAs previstos', r: 'TCRAs atendidos' },
   { nome: 'Apresentação de Destinação de Embalagens de Agrotóxicos (100%)', modo: 'marco', ponto: 'Comprovante / nº da nota', p: 'Previsto', r: 'Apresentado' }
 ];
+// Configuração de referência: planilha config_indicadores de 22/09/2026 (bloco Meio Ambiente, ativos).
+// [unidade, gerência, indicador]. Usada para completar a visão e apontar o que falta no Supabase.
+const CONFIG_PLANILHA = [["JB", "Gerência Agrícola CTT e PPT - JB", "Manutenção dos aceiros (95% dos aceiros com manutenção)"], ["JB", "Gerência Agrícola CTT e PPT - JB", "Separação e destinação de Resíduos sólidos da saúde (100 % dos resíduos separados)"], ["PB", "Gerência Agrícola CTT e PPT - PB", "Evidencias de controle e monitoramento de moscas dos estábulos PB (100%)"], ["PB", "Gerência Agrícola CTT e PPT - PB", "Manutenção dos aceiros (95% dos aceiros com manutenção)"], ["PB", "Gerência Agrícola CTT e PPT - PB", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["PB", "Gerência Automotiva", "Inspeção caixa separadora de água e óleo"], ["JB", "Gerência Automotiva", "Inspeção caixa separadora de água e óleo"], ["PB", "Gerência Automotiva", "Monitoramento de Fumaça de Veiculos a Diesel (90 % dos veículos devem estar com padrão escala de Ringelmann )"], ["JB", "Gerência Automotiva", "Monitoramento de Fumaça de Veiculos a Diesel (90 % dos veículos devem estar com padrão escala de Ringelmann )"], ["PB", "Gerência Automotiva", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB", "Gerência Automotiva", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB", "Gerência Engenharia Agronômica", "Captação de Água (Volume captado X outorgado)"], ["PB", "Gerência Engenharia Agronômica", "Captação de Água (Volume captado X outorgado)"], ["JB", "Gerência Engenharia Agronômica", "Nº de Termo de Compromisso de Recuperação Ambiental (TCRA)"], ["PB", "Gerência Engenharia Agronômica", "Nº de Termo de Compromisso de Recuperação Ambiental (TCRA)"], ["JB", "Gerência Engenharia Agronômica", "Plano de Aplicação de Vinhaça - PAV (100% do plano concluído e protocolado)"], ["PB", "Gerência Engenharia Agronômica", "Plano de Aplicação de Vinhaça - PAV (100% do plano concluído e protocolado)"], ["JB", "Gerência Engenharia Agronômica", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["PB", "Gerência Engenharia Agronômica", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB", "Gerência Industrial - JB", "Captação de Água (Volume captado X outorgado)"], ["JB", "Gerência Industrial - JB", "Manutenção Tratamento de Esgoto (90 % do plano de manutenção realizado)"], ["JB", "Gerência Industrial - JB", "Monitoramento da Fumaça das Caldeiras (90 % das análises devem estar com padrão escala de Ringelmann)"], ["JB", "Gerência Industrial - JB", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["PB", "Gerência Industrial - PB", "Captação de Água (Volume captado X outorgado)"], ["PB", "Gerência Industrial - PB", "Manutenção Tratamento de Esgoto (90 % do plano de manutenção realizado)"], ["PB", "Gerência Industrial - PB", "Monitoramento da Fumaça das Caldeiras (90 % das análises devem estar com padrão escala de Ringelmann)"], ["PB", "Gerência Industrial - PB", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB/PB", "Gerência Planejamento, Controle e Tecnologia", "Apresentação de Destinação de Embalagens de Agrotóxicos (100%)"], ["JB/PB", "Gerência Planejamento, Controle e Tecnologia", "Evidencias que não há agrotóxicos vencidos (0 produtos estocados há mais de 6 meses )"], ["JB/PB", "Gerência Planejamento, Controle e Tecnologia", "Monitoramento Pelo Pantera (Ocorrências de Incêndio-100% focos lançados no sistema pantera)"], ["JB/PB", "Gerência Planejamento, Controle e Tecnologia", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB/PB", "Gerência Suprimentos", "Limpeza periodica da Caixa SAO"], ["JB/PB", "Gerência Suprimentos", "Manutenção periódica do Sistema Sump do posto de abastecimento (90% da manutenção realizada)"], ["JB/PB", "Gerência Suprimentos", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB/PB", "RH/Jurídico/Restaurante/Saúde/Facilities", "Separação e destinação de Resíduos sólidos da saúde (100 % dos resíduos separados)"], ["PB", "Suprimentos", "Limpeza periodica da Caixa SAO"], ["PB", "Suprimentos", "Manutenção periódica do Sistema Sump do posto de abastecimento (90% da manutenção realizada)"], ["PB", "Suprimentos", "Separação e destinação de resíduos (100% dos resíduos separados)"]];
+
 const NOME_MODO = { amostral: 'amostral', plano: 'plano', marco: 'entrega', medicao: 'medição', evento: 'por evento' };
 const AJUDA_MODO = {
   amostral: 'Informe quantos itens foram avaliados nesta vistoria e quantos estavam conformes.',
@@ -221,6 +226,7 @@ const lsGet = k => { try { return localStorage.getItem(k); } catch (_) { return 
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
 const indPorId = id => indsMA.find(i => i.id === id);
 const gerPorId = id => gerencias.find(g => g.id === id);
+const nomeGer = g => g ? g.nome + (!unidadeAtual() && g.unidades?.nome && !normMA(g.nome).endsWith(normMA(g.unidades.nome)) ? ' — ' + g.unidades.nome : '') : '';
 
 function mesesDaSafra(s) {
   if (!s) return [];
@@ -267,8 +273,8 @@ async function init() {
   if (faltando.length) $('avisos').innerHTML = `<div class="aviso-box">Não encontrei no cadastro de indicadores: ${faltando.map(n => '<b>' + esc(curto(n)) + '</b>').join(', ')}. Esses não aparecem na tela.</div>`;
 
   $('f-safra').innerHTML = safras.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('');
-  $('f-unid').innerHTML = unidades.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
-  if (lsGet('ma-unid') && unidades.some(u => String(u.id) === lsGet('ma-unid'))) $('f-unid').value = lsGet('ma-unid');
+  $('f-unid').innerHTML = '<option value="0">Todas as unidades</option>' + unidades.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+  if (lsGet('ma-unid') && (lsGet('ma-unid') === '0' || unidades.some(u => String(u.id) === lsGet('ma-unid')))) $('f-unid').value = lsGet('ma-unid');
 
   $('f-safra').onchange = () => { mesSel = null; carregarTudo(); };
   $('f-unid').onchange = () => { lsSet('ma-unid', $('f-unid').value); carregarTudo(); };
@@ -283,11 +289,13 @@ async function init() {
 
 async function carregarTudo() {
   const s = safraAtual(), u = unidadeAtual();
-  if (!s || !u) return;
+  if (!s) return;
   $('lista').innerHTML = '<div class="carregando">Carregando...</div>';
   const idsInd = indsMA.map(i => i.id);
 
-  const rg = await sb.from('gerencias').select('id,nome').eq('unidade_id', u).eq('ativo', true).order('nome');
+  let qg = sb.from('gerencias').select('id,nome,unidade_id,unidades(nome)').eq('ativo', true).order('nome');
+  if (u) qg = qg.eq('unidade_id', u);
+  const rg = await qg;
   if (rg.error) { $('lista').innerHTML = `<div class="vazio">Erro ao carregar gerências: ${esc(rg.error.message)}</div>`; return; }
   const idsGer = (rg.data || []).map(g => g.id);
 
@@ -297,7 +305,9 @@ async function carregarTudo() {
     rc = await sb.from('ind_gerencia_safra').select('gerencia_id,indicador_id')
       .eq('ativo', true).in('indicador_id', idsInd.length ? idsInd : [-1]).in('gerencia_id', idsGer.length ? idsGer : [-1]);
   }
-  const rv = await sb.from('vistorias_ma').select('*').eq('safra_id', s.id).eq('unidade_id', u).order('data_vistoria').order('id');
+  let qv = sb.from('vistorias_ma').select('*').eq('safra_id', s.id).order('data_vistoria').order('id');
+  if (u) qv = qv.eq('unidade_id', u);
+  const rv = await qv;
   const err = rc.error || rv.error;
   if (err) {
     $('lista').innerHTML = `<div class="vazio">Erro ao carregar: ${esc(err.message)}<br>Se citar "vistorias_ma", rode antes o SQL de criação da tabela.</div>`;
@@ -306,7 +316,31 @@ async function carregarTudo() {
 
   cfgPorGer = {};
   (rc.data || []).forEach(c => { (cfgPorGer[c.gerencia_id] = cfgPorGer[c.gerencia_id] || new Set()).add(c.indicador_id); });
-  gerencias = (rg.data || []).filter(g => cfgPorGer[g.id]);
+  const todasGer = rg.data || [];
+  const semNoSupabase = [];
+  CONFIG_PLANILHA.forEach(([un, gNome, iNome]) => {
+    const ind = indsMA.find(i => normMA(i.nome) === normMA(iNome));
+    let cands = todasGer.filter(g => normMA(g.nome) === normMA(gNome));
+    if (cands.length > 1) {
+      const porUn = cands.filter(g => normMA(g.unidades?.nome) === normMA(un));
+      if (porUn.length) cands = porUn;
+    }
+    if (!cands.length) {
+      // gerência de outra unidade (filtro do topo) não é problema; só avisa quando "Todas"
+      if (!u) semNoSupabase.push(`${gNome} (${un}): gerência não encontrada no cadastro`);
+      return;
+    }
+    if (!ind) return; // já avisado na carga dos indicadores
+    cands.forEach(g => {
+      if (!cfgPorGer[g.id]?.has(ind.id)) {
+        semNoSupabase.push(`${g.nome}${g.unidades?.nome ? ' (' + g.unidades.nome + ')' : ''} / ${curto(ind.nomeCad)}: está na planilha, mas não em ind_gerencia_safra — o hub não grava`);
+        (cfgPorGer[g.id] = cfgPorGer[g.id] || new Set()).add(ind.id);
+      }
+    });
+  });
+  $('avisos-cfg').innerHTML = semNoSupabase.length
+    ? `<div class="aviso-box"><b>Diferenças entre a planilha de configuração e o Supabase:</b><br>${semNoSupabase.map(esc).join('<br>')}</div>` : '';
+  gerencias = todasGer.filter(g => cfgPorGer[g.id]);
   registros = rv.data || [];
 
   if (!mesSel) {
@@ -349,8 +383,8 @@ function renderLista() {
   const porGer = {};
   doMes.forEach(r => (porGer[r.gerencia_id] = porGer[r.gerencia_id] || []).push(r));
   $('lista').innerHTML = Object.keys(porGer).map(Number)
-    .sort((a, b) => (gerPorId(a)?.nome || '').localeCompare(gerPorId(b)?.nome || ''))
-    .map(gid => `<div class="grupo-ger"><h3>${esc(gerPorId(gid)?.nome || 'Gerência ' + gid)}</h3><div class="lista">` +
+    .sort((a, b) => nomeGer(gerPorId(a)).localeCompare(nomeGer(gerPorId(b))))
+    .map(gid => `<div class="grupo-ger"><h3>${esc(nomeGer(gerPorId(gid)) || 'Gerência ' + gid)}</h3><div class="lista">` +
       porGer[gid].map(r => {
         const ind = indPorId(r.indicador_id);
         const ok = r.realizado >= r.previsto;
@@ -381,9 +415,9 @@ function somaMes(gid, iid, ym) {
 function renderSafra() {
   const meses = mesesDaSafra(safraAtual());
   if (!gerencias.length) { $('tabela-safra').innerHTML = '<div class="vazio">Nenhuma gerência com indicador de Meio Ambiente configurado.</div>'; return; }
-  const linhas = gerencias.map(g => {
+  const linhas = [...gerencias].sort((a, b) => nomeGer(a).localeCompare(nomeGer(b))).map(g => {
     const inds = indsMA.filter(i => cfgPorGer[g.id].has(i.id));
-    return `<tr class="ger"><td colspan="${meses.length + 2}">${esc(g.nome)}</td></tr>` + inds.map(i => {
+    return `<tr class="ger"><td colspan="${meses.length + 2}">${esc(nomeGer(g))}</td></tr>` + inds.map(i => {
       const nSafra = registros.filter(x => x.gerencia_id === g.id && x.indicador_id === i.id).length;
       const cels = meses.map(m => {
         const [p, r] = somaMes(g.id, i.id, m.ym);
@@ -418,7 +452,7 @@ function abrirRegistro(id) {
     <h3>${r ? 'Editar vistoria' : 'Nova vistoria'}</h3>
     <p class="desc">O mês da data da vistoria é o mês em que ela conta no IP.</p>
     <div class="campo"><label for="m-ger">Gerência</label>
-      <select id="m-ger">${gerencias.map(g => `<option value="${g.id}" ${r?.gerencia_id === g.id ? 'selected' : ''}>${esc(g.nome)}</option>`).join('')}</select></div>
+      <select id="m-ger">${gerencias.map(g => `<option value="${g.id}" ${r?.gerencia_id === g.id ? 'selected' : ''}>${esc(nomeGer(g))}</option>`).join('')}</select></div>
     <div class="campo"><label for="m-ind">Indicador</label><select id="m-ind"></select>
       <span class="ajuda" id="m-ajuda"></span></div>
     <div class="linha2">
@@ -491,7 +525,7 @@ async function salvar(r) {
   };
   const { error } = r
     ? await sb.from('vistorias_ma').update(dados).eq('id', r.id)
-    : await sb.from('vistorias_ma').insert({ ...dados, safra_id: safraAtual().id, unidade_id: unidadeAtual() });
+    : await sb.from('vistorias_ma').insert({ ...dados, safra_id: safraAtual().id, unidade_id: gerPorId(dados.gerencia_id)?.unidade_id || unidadeAtual() });
   if (error) { btn.disabled = false; btn.textContent = 'Tentar de novo'; return erro('Não salvou: ' + error.message); }
   fecharModal(); toast(r ? 'Vistoria atualizada' : 'Vistoria registrada');
   mesSel = dados.mes; carregarTudo();
@@ -509,11 +543,11 @@ async function excluir(id) {
 // Exportação
 // ─────────────────────────────────────────────────────────────
 function exportar() {
-  const s = safraAtual(), un = unidades.find(u => u.id === unidadeAtual());
+  const s = safraAtual(), un = unidades.find(u => u.id === unidadeAtual()) || { nome: 'Todas' };
   const cab = ['Mês', 'Data', 'Gerência', 'Indicador', 'Modo', 'Ponto avaliado', 'Previsto/avaliados', 'Realizado/conformes', '%', 'Responsável', 'Evidência', 'Observações'];
   const linhas = [...registros].sort((a, b) => a.data_vistoria.localeCompare(b.data_vistoria)).map(r => {
     const ind = indPorId(r.indicador_id);
-    return [r.mes, fmtData(r.data_vistoria), gerPorId(r.gerencia_id)?.nome || r.gerencia_id, ind?.nomeCad || r.indicador_id,
+    return [r.mes, fmtData(r.data_vistoria), nomeGer(gerPorId(r.gerencia_id)) || r.gerencia_id, ind?.nomeCad || r.indicador_id,
       ind ? NOME_MODO[ind.modo] : '', r.ponto || '', r.previsto, r.realizado, Math.round(r.realizado / r.previsto * 100) / 100,
       r.responsavel || '', r.evidencia_url || '', r.observacoes || ''];
   });
