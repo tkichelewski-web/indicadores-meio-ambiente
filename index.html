@@ -320,7 +320,9 @@ async function carregarTudo() {
   const semNoSupabase = [];
   CONFIG_PLANILHA.forEach(([un, gNome, iNome]) => {
     const ind = indsMA.find(i => normMA(i.nome) === normMA(iNome));
-    let cands = todasGer.filter(g => normMA(g.nome) === normMA(gNome));
+    // compara sem o prefixo "Gerência" (a planilha tem "Suprimentos" e "Gerência Suprimentos" para a mesma gerência)
+    const normGer = x => normMA(x).replace(/^gerencia/, '');
+    let cands = todasGer.filter(g => normGer(g.nome) === normGer(gNome));
     if (cands.length > 1) {
       const porUn = cands.filter(g => normMA(g.unidades?.nome) === normMA(un));
       if (porUn.length) cands = porUn;
