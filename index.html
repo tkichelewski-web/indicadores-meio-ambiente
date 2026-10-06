@@ -220,10 +220,6 @@ const IND_MA = [
   { nome: 'Nº de Termo de Compromisso de Recuperação Ambiental (TCRA)', modo: 'marco', ponto: 'Identificação dos TCRAs', p: 'TCRAs previstos', r: 'TCRAs atendidos' },
   { nome: 'Apresentação de Destinação de Embalagens de Agrotóxicos (100%)', modo: 'marco', ponto: 'Comprovante / nº da nota', p: 'Previsto', r: 'Apresentado' }
 ];
-// Configuração de referência: planilha config_indicadores de 22/09/2026 (bloco Meio Ambiente, ativos).
-// [unidade, gerência, indicador]. Usada para completar a visão e apontar o que falta no Supabase.
-const CONFIG_PLANILHA = [["JB", "Gerência Agrícola CTT e PPT - JB", "Manutenção dos aceiros (95% dos aceiros com manutenção)"], ["JB", "Gerência Agrícola CTT e PPT - JB", "Separação e destinação de Resíduos sólidos da saúde (100 % dos resíduos separados)"], ["PB", "Gerência Agrícola CTT e PPT - PB", "Evidencias de controle e monitoramento de moscas dos estábulos PB (100%)"], ["PB", "Gerência Agrícola CTT e PPT - PB", "Manutenção dos aceiros (95% dos aceiros com manutenção)"], ["PB", "Gerência Agrícola CTT e PPT - PB", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["PB", "Gerência Automotiva", "Inspeção caixa separadora de água e óleo"], ["JB", "Gerência Automotiva", "Inspeção caixa separadora de água e óleo"], ["PB", "Gerência Automotiva", "Monitoramento de Fumaça de Veiculos a Diesel (90 % dos veículos devem estar com padrão escala de Ringelmann )"], ["JB", "Gerência Automotiva", "Monitoramento de Fumaça de Veiculos a Diesel (90 % dos veículos devem estar com padrão escala de Ringelmann )"], ["PB", "Gerência Automotiva", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB", "Gerência Automotiva", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB", "Gerência Engenharia Agronômica", "Captação de Água (Volume captado X outorgado)"], ["PB", "Gerência Engenharia Agronômica", "Captação de Água (Volume captado X outorgado)"], ["JB", "Gerência Engenharia Agronômica", "Nº de Termo de Compromisso de Recuperação Ambiental (TCRA)"], ["PB", "Gerência Engenharia Agronômica", "Nº de Termo de Compromisso de Recuperação Ambiental (TCRA)"], ["JB", "Gerência Engenharia Agronômica", "Plano de Aplicação de Vinhaça - PAV (100% do plano concluído e protocolado)"], ["PB", "Gerência Engenharia Agronômica", "Plano de Aplicação de Vinhaça - PAV (100% do plano concluído e protocolado)"], ["JB", "Gerência Engenharia Agronômica", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["PB", "Gerência Engenharia Agronômica", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB", "Gerência Industrial - JB", "Captação de Água (Volume captado X outorgado)"], ["JB", "Gerência Industrial - JB", "Manutenção Tratamento de Esgoto (90 % do plano de manutenção realizado)"], ["JB", "Gerência Industrial - JB", "Monitoramento da Fumaça das Caldeiras (90 % das análises devem estar com padrão escala de Ringelmann)"], ["JB", "Gerência Industrial - JB", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["PB", "Gerência Industrial - PB", "Captação de Água (Volume captado X outorgado)"], ["PB", "Gerência Industrial - PB", "Manutenção Tratamento de Esgoto (90 % do plano de manutenção realizado)"], ["PB", "Gerência Industrial - PB", "Monitoramento da Fumaça das Caldeiras (90 % das análises devem estar com padrão escala de Ringelmann)"], ["PB", "Gerência Industrial - PB", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB/PB", "Gerência Planejamento, Controle e Tecnologia", "Apresentação de Destinação de Embalagens de Agrotóxicos (100%)"], ["JB/PB", "Gerência Planejamento, Controle e Tecnologia", "Evidencias que não há agrotóxicos vencidos (0 produtos estocados há mais de 6 meses )"], ["JB/PB", "Gerência Planejamento, Controle e Tecnologia", "Monitoramento Pelo Pantera (Ocorrências de Incêndio-100% focos lançados no sistema pantera)"], ["JB/PB", "Gerência Planejamento, Controle e Tecnologia", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB/PB", "Gerência Suprimentos", "Limpeza periodica da Caixa SAO"], ["JB/PB", "Gerência Suprimentos", "Manutenção periódica do Sistema Sump do posto de abastecimento (90% da manutenção realizada)"], ["JB/PB", "Gerência Suprimentos", "Separação e destinação de resíduos (100% dos resíduos separados)"], ["JB/PB", "RH/Jurídico/Restaurante/Saúde/Facilities", "Separação e destinação de Resíduos sólidos da saúde (100 % dos resíduos separados)"], ["PB", "Suprimentos", "Limpeza periodica da Caixa SAO"], ["PB", "Suprimentos", "Manutenção periódica do Sistema Sump do posto de abastecimento (90% da manutenção realizada)"], ["PB", "Suprimentos", "Separação e destinação de resíduos (100% dos resíduos separados)"]];
-
 const NOME_MODO = { amostral: 'amostral', plano: 'plano', marco: 'entrega', medicao: 'medição', evento: 'por evento' };
 const AJUDA_MODO = {
   amostral: 'Informe quantos itens foram avaliados nesta vistoria e quantos estavam conformes.',
@@ -342,32 +338,9 @@ async function carregarTudo() {
 
   cfgPorGer = {};
   (rc.data || []).forEach(c => { (cfgPorGer[c.gerencia_id] = cfgPorGer[c.gerencia_id] || new Set()).add(c.indicador_id); });
+  // A configuração vem só do Sistema IP (ind_gerencia_safra): o que for tirado lá some daqui.
   const todasGer = rg.data || [];
-  const semNoSupabase = [];
-  CONFIG_PLANILHA.forEach(([un, gNome, iNome]) => {
-    const ind = indsMA.find(i => normMA(i.nome) === normMA(iNome));
-    // compara sem o prefixo "Gerência" (a planilha tem "Suprimentos" e "Gerência Suprimentos" para a mesma gerência)
-    const normGer = x => normMA(x).replace(/^gerencia/, '');
-    let cands = todasGer.filter(g => normGer(g.nome) === normGer(gNome));
-    if (cands.length > 1) {
-      const porUn = cands.filter(g => normMA(g.unidades?.nome) === normMA(un));
-      if (porUn.length) cands = porUn;
-    }
-    if (!cands.length) {
-      // gerência de outra unidade (filtro do topo) não é problema; só avisa quando "Todas"
-      if (!u) semNoSupabase.push(`${gNome} (${un}): gerência não encontrada no cadastro`);
-      return;
-    }
-    if (!ind) return; // já avisado na carga dos indicadores
-    cands.forEach(g => {
-      if (!cfgPorGer[g.id]?.has(ind.id)) {
-        semNoSupabase.push(`${g.nome}${g.unidades?.nome ? ' (' + g.unidades.nome + ')' : ''} / ${curto(ind.nomeCad)}: está na planilha, mas não em ind_gerencia_safra — o hub não grava`);
-        (cfgPorGer[g.id] = cfgPorGer[g.id] || new Set()).add(ind.id);
-      }
-    });
-  });
-  $('avisos-cfg').innerHTML = semNoSupabase.length
-    ? `<div class="aviso-box"><b>Diferenças entre a planilha de configuração e o Supabase:</b><br>${semNoSupabase.map(esc).join('<br>')}</div>` : '';
+  $('avisos-cfg').innerHTML = '';
   gerencias = todasGer.filter(g => cfgPorGer[g.id]);
   registros = rv.data || [];
 
