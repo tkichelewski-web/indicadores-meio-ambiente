@@ -23,6 +23,9 @@ button,select,input,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--lima);outline-offset:2px}
 .hidden{display:none !important}
 
+.usuario-topo{font-size:13px;color:#CFE6D6;align-self:center}
+.usuario-topo b{color:#fff}
+.usuario-topo button{background:none;border:1px solid #2F7F60;color:#fff;border-radius:6px;padding:2px 10px;margin-left:8px;cursor:pointer;font:inherit;font-size:12px}
 header.topo{background:var(--verde);color:#fff;border-bottom:4px solid var(--lima)}
 .topo-inner{max-width:1240px;margin:0 auto;padding:16px 24px;display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap}
 .topo h1{margin:0;font-size:22px;line-height:1.2}
@@ -123,7 +126,7 @@ main{max-width:1240px;margin:0 auto;padding:20px 24px 60px}
     <div class="filtros">
       <div><label for="f-safra">Safra</label><select id="f-safra"></select></div>
       <div><label for="f-unid">Unidade</label><select id="f-unid"></select></div>
-      <div><label for="f-resp">Seu nome</label><input id="f-resp" placeholder="Responsável pela vistoria"></div>
+      <div class="usuario-topo" id="usuario-topo" hidden></div>
     </div>
   </div>
 </header>
@@ -175,6 +178,30 @@ const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true,
 // O nome precisa bater com o cadastro (acentos, maiúsculas e espaços são ignorados).
 // modo: amostral | plano | marco | medicao | evento  (só muda os rótulos da tela)
 // ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+// Login: exigido pelo Portal Índice de Prevenção SSMA (mesma sessão do navegador)
+// ─────────────────────────────────────────────────────────────
+const PORTAL_URL = 'https://tkichelewski-web.github.io/portal-ip/';
+let usuarioAtual = null; // { nome, email }
+async function exigirLogin() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.replace(PORTAL_URL + '?voltar=' + encodeURIComponent(location.href.split('#')[0])); return false; }
+  const u = session.user;
+  const { data } = await sb.from('usuarios').select('nome').eq('auth_id', u.id).maybeSingle();
+  usuarioAtual = { nome: (data && data.nome) || u.email, email: (u.email || '').toLowerCase() };
+  const box = document.getElementById('usuario-topo');
+  if (box) {
+    box.innerHTML = 'Conectado como <b></b><button type="button">Sair</button>';
+    box.querySelector('b').textContent = usuarioAtual.nome;
+    box.querySelector('button').onclick = async () => { await sb.auth.signOut(); location.href = PORTAL_URL; };
+    box.hidden = false;
+  }
+  return true;
+}
+const quemAgora = () => ({ nome: usuarioAtual?.nome || null, email: usuarioAtual?.email || null });
+const agoraISO = () => new Date().toISOString();
+
 const IND_MA = [
   { nome: 'Manutenção dos aceiros (95% dos aceiros com manutenção)', modo: 'amostral', ponto: 'Identificação do aceiro (nº, talhão, fazenda)', p: 'Aceiros vistoriados', r: 'Com manutenção' },
   { nome: 'Separação e destinação de Resíduos sólidos da saúde (100 % dos resíduos separados)', modo: 'amostral', ponto: 'Local de geração (ambulatório, posto...)', p: 'Pontos vistoriados', r: 'Pontos com resíduo separado' },
@@ -244,8 +271,7 @@ function toast(msg, erro) {
 // Carga
 // ─────────────────────────────────────────────────────────────
 async function init() {
-  $('f-resp').value = lsGet('ma-resp') || '';
-  $('f-resp').addEventListener('change', e => lsSet('ma-resp', e.target.value.trim()));
+  if (!(await exigirLogin())) return;
 
   const [rs, ru, ri] = await Promise.all([
     sb.from('safras').select('id,nome,ano_ini,ano_fim').eq('ativa', true).order('ano_ini', { ascending: false }),
@@ -392,7 +418,8 @@ function renderLista() {
         const ok = r.realizado >= r.previsto;
         const meta = [fmtData(r.data_vistoria)];
         if (r.ponto) meta.push(esc(r.ponto));
-        if (r.responsavel) meta.push('Por ' + esc(r.responsavel));
+        if (r.responsavel) meta.push('Registrado por ' + esc(r.responsavel) + (r.criado_em ? ' em ' + fmtData(r.criado_em.slice(0, 10)) : ''));
+        if (r.atualizado_por && r.atualizado_por !== r.responsavel) meta.push('Alterado por ' + esc(r.atualizado_por) + (r.atualizado_em ? ' em ' + fmtData(r.atualizado_em.slice(0, 10)) : ''));
         if (r.observacoes) meta.push(esc(r.observacoes));
         return `<article class="reg ${ok ? '' : 'parcial'}">
           <h4>${esc(curto(ind?.nomeCad || 'Indicador ' + r.indicador_id))}${ind ? `<span class="modo">${NOME_MODO[ind.modo]}</span>` : ''}</h4>
@@ -443,7 +470,7 @@ function abrirModal(html) {
 }
 function fecharModal() { $('modal-raiz').innerHTML = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
-const resp = () => ($('f-resp').value || '').trim();
+
 
 function abrirRegistro(id) {
   if (!gerencias.length) { toast('Nenhuma gerência desta unidade tem indicador de Meio Ambiente configurado.', true); return; }
@@ -504,7 +531,6 @@ function abrirRegistro(id) {
 }
 
 async function salvar(r) {
-  if (!resp()) { toast('Preencha "Seu nome" no topo antes de salvar.', true); $('f-resp').focus(); return; }
   const meses = mesesDaSafra(safraAtual()).map(m => m.ym);
   const d = $('m-data').value;
   const p = Number($('m-prev').value), rr = $('m-real').value === '' ? NaN : Number($('m-real').value);
@@ -523,11 +549,13 @@ async function salvar(r) {
     gerencia_id: Number($('m-ger').value), indicador_id: indId, data_vistoria: d, mes: d.slice(0, 7),
     ponto: $('m-ponto').value.trim() || null, previsto: p, realizado: rr,
     evidencia_url: $('m-evid').value.trim() || null, observacoes: $('m-obs').value.trim() || null,
-    responsavel: resp(), atualizado_em: new Date().toISOString()
+    atualizado_em: agoraISO(), atualizado_por: quemAgora().nome, atualizado_por_email: quemAgora().email
   };
+  // Quem registrou fica em "responsavel" e não muda quando alguém edita depois
   const { error } = r
     ? await sb.from('vistorias_ma').update(dados).eq('id', r.id)
-    : await sb.from('vistorias_ma').insert({ ...dados, safra_id: safraAtual().id, unidade_id: gerPorId(dados.gerencia_id)?.unidade_id || unidadeAtual() });
+    : await sb.from('vistorias_ma').insert({ ...dados, responsavel: quemAgora().nome, responsavel_email: quemAgora().email,
+        safra_id: safraAtual().id, unidade_id: gerPorId(dados.gerencia_id)?.unidade_id || unidadeAtual() });
   if (error) { btn.disabled = false; btn.textContent = 'Tentar de novo'; return erro('Não salvou: ' + error.message); }
   fecharModal(); toast(r ? 'Vistoria atualizada' : 'Vistoria registrada');
   mesSel = dados.mes; carregarTudo();
@@ -546,15 +574,15 @@ async function excluir(id) {
 // ─────────────────────────────────────────────────────────────
 function exportar() {
   const s = safraAtual(), un = unidades.find(u => u.id === unidadeAtual()) || { nome: 'Todas' };
-  const cab = ['Mês', 'Data', 'Gerência', 'Indicador', 'Modo', 'Ponto avaliado', 'Previsto/avaliados', 'Realizado/conformes', '%', 'Responsável', 'Evidência', 'Observações'];
+  const cab = ['Mês', 'Data', 'Gerência', 'Indicador', 'Modo', 'Ponto avaliado', 'Previsto/avaliados', 'Realizado/conformes', '%', 'Registrado por', 'Alterado por', 'Evidência', 'Observações'];
   const linhas = [...registros].sort((a, b) => a.data_vistoria.localeCompare(b.data_vistoria)).map(r => {
     const ind = indPorId(r.indicador_id);
     return [r.mes, fmtData(r.data_vistoria), nomeGer(gerPorId(r.gerencia_id)) || r.gerencia_id, ind?.nomeCad || r.indicador_id,
       ind ? NOME_MODO[ind.modo] : '', r.ponto || '', r.previsto, r.realizado, Math.round(r.realizado / r.previsto * 100) / 100,
-      r.responsavel || '', r.evidencia_url || '', r.observacoes || ''];
+      r.responsavel || '', (r.atualizado_por && r.atualizado_por !== r.responsavel) ? r.atualizado_por : '', r.evidencia_url || '', r.observacoes || ''];
   });
   const ws = XLSX.utils.aoa_to_sheet([[`Indicadores de Meio Ambiente — Safra ${s.nome} — ${un?.nome || ''}`], [], cab, ...linhas]);
-  ws['!cols'] = [{ wch: 9 }, { wch: 11 }, { wch: 38 }, { wch: 60 }, { wch: 11 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 6 }, { wch: 18 }, { wch: 30 }, { wch: 40 }];
+  ws['!cols'] = [{ wch: 9 }, { wch: 11 }, { wch: 38 }, { wch: 60 }, { wch: 11 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 6 }, { wch: 22 }, { wch: 22 }, { wch: 30 }, { wch: 40 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Vistorias');
   XLSX.writeFile(wb, `Indicadores_MA_${(un?.nome || 'unidade').replace(/\W+/g, '_')}_${s.nome.replace(/\W+/g, '-')}.xlsx`);
