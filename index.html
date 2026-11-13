@@ -388,7 +388,8 @@ function renderLista() {
     .map(gid => `<div class="grupo-ger"><h3>${esc(nomeGer(gerPorId(gid)) || 'Gerência ' + gid)}</h3><div class="lista">` +
       porGer[gid].map(r => {
         const ind = indPorId(r.indicador_id);
-        const ok = r.realizado >= r.previsto;
+        const planejada = r.data_vistoria > hojeISO();
+        const ok = planejada || r.realizado >= r.previsto;
         const meta = [fmtData(r.data_vistoria)];
         if (r.ponto) meta.push(esc(r.ponto));
         if (r.responsavel) meta.push('Registrado por ' + esc(r.responsavel) + (r.criado_em ? ' em ' + fmtData(r.criado_em.slice(0, 10)) : ''));
@@ -396,7 +397,7 @@ function renderLista() {
         if (r.observacoes) meta.push(esc(r.observacoes));
         return `<article class="reg ${ok ? '' : 'parcial'}">
           <h4>${esc(curto(ind?.nomeCad || 'Indicador ' + r.indicador_id))}${ind ? `<span class="modo">${NOME_MODO[ind.modo]}</span>` : ''}</h4>
-          <span class="res ${ok ? 'ok' : 'nok'}">${r.realizado} de ${r.previsto}</span>
+          ${planejada ? `<span class="res" style="background:#EEF3F0;color:var(--muted)">Planejada</span>` : `<span class="res ${ok ? 'ok' : 'nok'}">${r.realizado} de ${r.previsto}</span>`}
           <div class="meta">${meta.map(m => `<span>${m}</span>`).join('')}</div><div></div>
           <div class="acoes">
             <button class="btn btn-link" onclick="abrirRegistro(${r.id})">Editar</button>
@@ -411,7 +412,7 @@ function renderLista() {
 // ─────────────────────────────────────────────────────────────
 function somaMes(gid, iid, ym) {
   let p = 0, r = 0;
-  registros.forEach(x => { if (x.gerencia_id === gid && x.indicador_id === iid && x.mes === ym) { p += x.previsto; r += x.realizado; } });
+  registros.forEach(x => { if (x.gerencia_id === gid && x.indicador_id === iid && x.mes === ym && x.data_vistoria <= hojeISO()) { p += x.previsto; r += x.realizado; } }); // planejadas (data futura) ainda não entram
   return [p, r];
 }
 function renderSafra() {
@@ -459,7 +460,7 @@ function abrirRegistro(id) {
       <span class="ajuda" id="m-ajuda"></span></div>
     <div class="linha2">
       <div class="campo"><label for="m-data">Data da vistoria</label>
-        <input type="date" id="m-data" value="${dataPadrao}" min="${meses[0].ym}-01" max="${hojeISO()}"></div>
+        <input type="date" id="m-data" value="${dataPadrao}" min="${meses[0].ym}-01"></div>
       <div class="campo"><label for="m-ponto">Ponto avaliado</label><input id="m-ponto" value="${esc(r?.ponto || '')}"></div>
     </div>
     <div class="linha2">
@@ -494,7 +495,9 @@ function abrirRegistro(id) {
     const partes = [];
     if (p > 0 && rr !== null && rr >= 0) partes.push(`<b>${rr} de ${p}</b> (${Math.round(rr / p * 100)}%)`);
     if (d) partes.push('conta no IP de ' + nomeMesLongo(d.slice(0, 7)).toLowerCase());
-    $('m-calc').innerHTML = partes.join(', ') || 'Preencha os números.';
+    const futura = d && d > hojeISO();
+    $('m-calc').innerHTML = (partes.join(', ') || 'Preencha os números.') +
+      (futura ? `<br><b>Vistoria planejada.</b> Os conformes podem ficar em branco agora; depois de fazer a vistoria, volte em Editar e informe.` : '');
   };
   $('m-ger').onchange = syncInds;
   $('m-ind').onchange = syncRotulos;
@@ -506,14 +509,16 @@ function abrirRegistro(id) {
 async function salvar(r) {
   const meses = mesesDaSafra(safraAtual()).map(m => m.ym);
   const d = $('m-data').value;
-  const p = Number($('m-prev').value), rr = $('m-real').value === '' ? NaN : Number($('m-real').value);
+  const p = Number($('m-prev').value);
+  let rr = $('m-real').value === '' ? NaN : Number($('m-real').value);
   const indId = Number($('m-ind').value);
   const erro = t => { $('m-erro').textContent = t; };
   if (!indId) return erro('Escolha o indicador.');
   if (!d) return erro('Informe a data da vistoria.');
-  if (d > hojeISO()) return erro('A data não pode ser futura.');
+  const futura = d > hojeISO();
   if (!meses.includes(d.slice(0, 7))) return erro('A data está fora da safra selecionada.');
   if (!Number.isInteger(p) || p < 1) return erro('O primeiro número precisa ser pelo menos 1.');
+  if (futura && $('m-real').value === '') rr = 0; // planejada: conformes informados depois
   if (!Number.isInteger(rr) || rr < 0) return erro('Informe o segundo número (pode ser 0).');
   if (rr > p) return erro('O segundo número não pode ser maior que o primeiro.');
 
@@ -530,7 +535,7 @@ async function salvar(r) {
     : await sb.from('vistorias_ma').insert({ ...dados, responsavel: quemAgora().nome, responsavel_email: quemAgora().email,
         safra_id: safraAtual().id, unidade_id: gerPorId(dados.gerencia_id)?.unidade_id || unidadeAtual() });
   if (error) { btn.disabled = false; btn.textContent = 'Tentar de novo'; return erro('Não salvou: ' + error.message); }
-  fecharModal(); toast(r ? 'Vistoria atualizada' : 'Vistoria registrada');
+  fecharModal(); toast(futura ? 'Vistoria planejada para ' + fmtData(d) : (r ? 'Vistoria atualizada' : 'Vistoria registrada'));
   mesSel = dados.mes; carregarTudo();
 }
 
